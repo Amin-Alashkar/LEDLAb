@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hawkings Lab - LED Message Controller</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Roboto:wght@300;400;500&family=Creepster&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="particles-container"></div>
+    
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-satellite-dish"></i>
+                    <h1>Hawkins Lab LED Controller</h1>
+                </div>
+                <div class="header-info">
+                    <p>Secure transmission system for LED message display</p>
+                    <div class="connection-status">
+                        <span id="connection-dot" class="dot"></span>
+                        <span id="connection-text">Establishing connection...</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="left-column">
+                <div class="card input-card">
+                    <div class="card-header">
+                        <i class="fas fa-keyboard"></i>
+                        <h2>Encoded Message Transmission</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="message-input"><i class="fas fa-comment-alt"></i> Message to Encode</label>
+                            <textarea 
+                                id="message-input" 
+                                placeholder="Enter your message... (A-Z lights single LED, 1-26 triggers sequences, special chars clear all)"
+                                maxlength="100"
+                            ></textarea>
+                            <div class="input-footer">
+                                <span id="char-count">0/100 characters</span>
+                                <div class="input-hints">
+                                    <span class="hint"><i class="fas fa-font"></i> Letters = Single LED</span>
+                                    <span class="hint"><i class="fas fa-hashtag"></i> Numbers = Sequence</span>
+                                    <span class="hint"><i class="fas fa-asterisk"></i> Special = Clear All</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="button-group">
+                            <button id="send-btn" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Transmit to LEDs
+                            </button>
+                            <button id="clear-btn" class="btn btn-secondary">
+                                <i class="fas fa-eraser"></i> Clear Message
+                            </button>
+                            <button id="demo-btn" class="btn btn-accent">
+                                <i class="fas fa-magic"></i> Demo Sequence
+                            </button>
+                        </div>
+                        
+                        <div class="server-response">
+                            <h3><i class="fas fa-server"></i> Transmission Log</h3>
+                            <div id="server-response" class="response-box">
+                                <div class="placeholder">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <p>Awaiting message transmission...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card led-preview-card">
+                    <div class="card-header">
+                        <i class="fas fa-lightbulb"></i>
+                        <h2>LED Array Preview (26 Units)</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="led-strip-preview">
+                        </div>
+                        <div class="preview-info">
+                            <p><i class="fas fa-info-circle"></i> Visual simulation of the physical LED array response</p>
+                            <div class="preview-controls">
+                                <button id="play-preview" class="btn btn-small">
+                                    <i class="fas fa-play"></i> Activate Sequence
+                                </button>
+                                <button id="reset-preview" class="btn btn-small btn-secondary">
+                                    <i class="fas fa-redo"></i> Reset Display
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="card status-card">
+                    <div class="card-header">
+                        <i class="fas fa-microchip"></i>
+                        <h2>System Status</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <div class="status-icon">
+                                    <i class="fas fa-server"></i>
+                                </div>
+                                <div class="status-details">
+                                    <h4>Hawkins Lab API</h4>
+                                    <p id="api-status">Establishing link...</p>
+                                    <small>Secure Channel: 192.168.1.146:8000</small>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-icon">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="status-details">
+                                    <h4>Device Status</h4>
+                                    <p id="device-status">Ready for transmission</p>
+                                    <small>Polling frequency: 1Hz</small>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-icon">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <div class="status-details">
+                                    <h4>Last Transmission</h4>
+                                    <p id="last-sent-time">No transmissions yet</p>
+                                    <small>Stored in secure memory</small>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-icon">
+                                    <i class="fas fa-sync-alt"></i>
+                                </div>
+                                <div class="status-details">
+                                    <h4>Auto-Sync</h4>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="auto-refresh-toggle" checked>
+                                        <label for="auto-refresh-toggle"></label>
+                                        <span>Active (5s)</span>
+                                    </div>
+                                    <small>Real-time display updates</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card guide-card">
+                    <div class="card-header">
+                        <i class="fas fa-code"></i>
+                        <h2>Encoding Protocol</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="translation-rules">
+                            <div class="rule">
+                                <div class="rule-icon letter">A</div>
+                                <div class="rule-details">
+                                    <h4>Alphabetical (A-Z)</h4>
+                                    <p>Activates corresponding LED position (A=0, B=1, etc.)</p>
+                                </div>
+                            </div>
+                            <div class="rule">
+                                <div class="rule-icon number">5</div>
+                                <div class="rule-details">
+                                    <h4>Numerical (1-26)</h4>
+                                    <p>Triggers sequential LED activation pattern</p>
+                                </div>
+                            </div>
+                            <div class="rule">
+                                <div class="rule-icon special">!</div>
+                                <div class="rule-details">
+                                    <h4>Special Characters</h4>
+                                    <p>Emergency clear command for all LEDs</p>
+                                </div>
+                            </div>
+                            <div class="rule">
+                                <div class="rule-icon space"> </div>
+                                <div class="rule-details">
+                                    <h4>Space Character</h4>
+                                    <p>Brief pause between character displays</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="code-example">
+                            <h4><i class="fas fa-code"></i> Example: "HAWKINS 117!"</h4>
+                            <pre><code class="language-python"># LED Array Response:
+# H → Activate LED 7
+# A → Activate LED 0
+# W → Activate LED 22
+# K → Activate LED 10
+# I → Activate LED 8
+# N → Activate LED 13
+# S → Activate LED 18
+# Space → 300ms pause
+# 1 → Activate LED 0
+# 1 → Activate LED 0
+# 7 → Activate LEDs 0-6 sequentially
+# ! → Emergency clear all units</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card recent-card">
+                    <div class="card-header">
+                        <i class="fas fa-history"></i>
+                        <h2>Transmission Log</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="recent-messages">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>No transmissions recorded</p>
+                            </div>
+                        </div>
+                        <div class="recent-controls">
+                            <button id="refresh-messages" class="btn btn-small">
+                                <i class="fas fa-sync-alt"></i> Refresh Log
+                            </button>
+                            <button id="clear-history" class="btn btn-small btn-secondary">
+                                <i class="fas fa-trash"></i> Clear Log
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-broadcast-tower"></i>
+                    <span>Hawkins Lab Communications</span>
+                </div>
+                <div class="footer-info">
+                    <p>Secure API Endpoint: <code>http://192.168.1.146:8080</code></p>
+                    <p>Real-time LED array control system for encoded message transmission</p>
+                </div>
+                <div class="footer-links">
+                    <button id="api-docs-btn" class="btn-link">
+                        <i class="fas fa-book"></i> Protocol Docs
+                    </button>
+                    <button id="simulate-device-btn" class="btn-link">
+                        <i class="fas fa-gamepad"></i> Simulate Device
+                    </button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
