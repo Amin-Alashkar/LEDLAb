@@ -1,6 +1,7 @@
 const API_BASE_URL = 'http://192.168.1.146:8080';
 const GET_MESSAGE_ENDPOINT = `${API_BASE_URL}/message`;
 const POST_MESSAGE_ENDPOINT = `${API_BASE_URL}/message`;
+const BAD_WORDS_FILE = 'badwords.txt';
 
 const messageInput = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
@@ -28,6 +29,7 @@ let autoRefreshInterval = null;
 let recentMessagesList = [];
 let ledAnimationInterval = null;
 let isAnimating = false;
+let blockedWords = [];
 
 const letterToLedIndex = {
     'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7, 'I': 8,
@@ -39,12 +41,27 @@ document.addEventListener('DOMContentLoaded', function() {
     initApp();
 });
 
-function initApp() {
+async function initApp() {
+    await loadBlockedWords();
     createLedStrip();
     setupEventListeners();
     loadRecentMessages();
     checkConnection();
     updateCharCount();
+}
+
+async function loadBlockedWords() {
+    try {
+        const response = await fetch(BAD_WORDS_FILE);
+        const text = await response.text();
+        blockedWords = text
+            .split('\n')
+            .map(word => word.trim().toLowerCase())
+            .filter(word => word.length > 0);
+    } catch (error) {
+        console.log('Error loading bad words file');
+        blockedWords = [];
+    }
 }
 
 function setupEventListeners() {
@@ -68,6 +85,21 @@ function setupEventListeners() {
     simulateDeviceBtn.addEventListener('click', simulateDevicePolling);
     
     autoRefreshToggle.addEventListener('change', toggleAutoRefresh);
+}
+
+function containsBlockedWords(text) {
+    const lowerText = text.toLowerCase();
+    
+    for (let i = 0; i < blockedWords.length; i++) {
+        if (lowerText.includes(blockedWords[i])) {
+            return {
+                blocked: true,
+                word: blockedWords[i]
+            };
+        }
+    }
+    
+    return { blocked: false };
 }
 
 async function checkConnection() {
@@ -114,6 +146,12 @@ async function sendMessage() {
     if (!text) {
         showResponse('Please enter a message.', 'error');
         messageInput.focus();
+        return;
+    }
+    
+    const blockCheck = containsBlockedWords(text);
+    if (blockCheck.blocked) {
+        showResponse(`Message blocked: Contains restricted word "${blockCheck.word}"`, 'error');
         return;
     }
     
@@ -336,7 +374,8 @@ function loadDemoMessage() {
         "HELLO",
         "TEST 123",
         "LED DEMO",
-        "ABC 123"
+        "ABC 123",
+        "WELCOME"
     ];
     
     const randomMessage = demoMessages[Math.floor(Math.random() * demoMessages.length)];
@@ -408,7 +447,7 @@ function loadRecentMessages() {
 
 function updateRecentMessagesDisplay() {
     if (recentMessagesList.length === 0) {
-        recentMessages.innerHTML = '<p class="empty">No messages</p>';
+        recentMessages.innerHTML = '<p class="empty">No messages yet</p>';
         return;
     }
     
@@ -433,12 +472,15 @@ function clearMessageHistory() {
 }
 
 function showApiDocs() {
+    const blockedWordsText = blockedWords.length > 0 ? blockedWords.join(', ') : 'None loaded';
+    
     const docs = `
         <h3>API Documentation</h3>
         <p><strong>URL:</strong> ${API_BASE_URL}</p>
         <p><code>GET /message</code> - Get last message</p>
         <p><code>POST /message</code> - Send message</p>
         <p>POST data: {"text": "message"}</p>
+        <p><strong>Blocked Words:</strong> ${blockedWordsText}</p>
     `;
     
     showResponse(docs, 'info');
